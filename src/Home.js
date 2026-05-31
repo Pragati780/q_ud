@@ -91,6 +91,7 @@ export const Home = () => {
 
   useEffect(() => {
     getCustomers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalPending = customers.reduce(
