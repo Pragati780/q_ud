@@ -4,17 +4,7 @@
 [![Netlify](https://img.shields.io/badge/Deployment-Netlify-success)](https://www.netlify.com/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-### Links
 
-Live Application: https://fastidious-froyo-ff2507.netlify.app/
-
-Source Code: https://github.com/Pragati780/q_ud
-
-Firebase: https://firebase.google.com/
-
-React: https://react.dev/
-
-Netlify: https://www.netlify.com/
 
 A lightweight transaction management prototype designed to explore how streamlined workflows can improve digital record-keeping efficiency in high-volume retail environments.
 
