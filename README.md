@@ -1,52 +1,66 @@
 
-# QuickUdhaar
+[![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-orange)](https://firebase.google.com/)
+[![Netlify](https://img.shields.io/badge/Deployment-Netlify-success)](https://www.netlify.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+
+### Links
+
+Live Application: https://fastidious-froyo-ff2507.netlify.app/
+
+Source Code: https://github.com/Pragati780/q_ud
+
+Firebase: https://firebase.google.com/
+
+React: https://react.dev/
+
+Netlify: https://www.netlify.com/
+
+A lightweight transaction management prototype designed to explore how streamlined workflows can improve digital record-keeping efficiency in high-volume retail environments.
 
 ## Problem Statement
 
-Many kirana merchants still rely on notebooks, memory, or informal tracking methods for managing customer udhaar (credit). While digital ledger solutions exist, recording transactions during busy store hours can still feel inconvenient, leading to delayed entries, forgotten transactions, and additional reconciliation effort.
+Small retail businesses often face operational friction when recording credit-based transactions during peak business hours. Multi-step workflows and excessive navigation can reduce consistency in digital record keeping, leading to delayed reconciliation and reliance on manual processes.
 
-## Project Overview
+## Proposed Solution
 
-QuickUdhaar is a lightweight prototype designed to explore whether reducing transaction-entry friction can improve digital udhaar logging during peak store hours.
-
-Instead of replacing existing digital ledger systems, the prototype focuses on faster transaction recording through simplified workflows and quick-entry mechanisms.
+A workflow-focused prototype that simplifies transaction recording through a single-screen experience and reduced interaction cost.
 
 ## Key Features
 
 ### Voice-Assisted Entry
 
-* Record customer details using voice input.
-* Automatically fills customer name and amount fields.
-* Reduces manual typing effort.
+* Supports browser-based voice input for transaction recording.
+* Automatically populates customer name and transaction amount fields from speech input.
 
 ### Quick Amount Shortcuts
 
-* One-tap buttons for commonly used amounts.
-* Faster transaction recording during rush hours.
+* One-tap buttons for frequently used transaction amounts.
+* Reduces manual input and accelerates transaction recording.
 
-### Rush Hour Workflow
+### Rush Mode
 
-* Designed for situations where merchants need to record transactions quickly while serving customers.
-* Minimizes the number of interactions required to log credit entries.
+* Dedicated workflow for high-activity business periods.
+* Prioritizes speed and reduces interaction overhead during transaction entry.
 
-### Digital Udhaar Ledger
+### Digital Transaction Ledger
 
-* Stores customer credit records.
-* Displays pending balances.
-* Maintains transaction history.
+* Stores transaction records in Firebase Firestore.
+* Maintains a centralized view of outstanding customer balances.
 
-### Timestamped Entries
+### Real-Time Balance Tracking
 
-* Records when each transaction was created.
-* Improves tracking and reconciliation.
+* Automatically updates and displays total pending balances.
+* Reflects changes immediately after transaction creation or payment settlement.
 
-### Payment Reminders
+### Timestamped Records
 
-* Allows merchants to initiate reminder actions for pending payments.
+* Records transaction creation time for tracking and reconciliation purposes.
 
-## Hypothesis
+### Payment Status Management
 
-The project explores the hypothesis that reducing transaction-entry effort can improve the consistency of digital udhaar recording during busy store hours.
+* Supports clearing outstanding transactions after payment is received.
+* Updates ledger records and balances in real time.
 
 ## Tech Stack
 
@@ -54,7 +68,25 @@ The project explores the hypothesis that reducing transaction-entry effort can i
 * Firebase Firestore
 * JavaScript
 * CSS
+* Netlify
 
-## Current Status
+## Project Objective
 
-This is an exploratory prototype built to test friction-reduction workflows such as voice-assisted entry and quick transaction recording. The objective is to evaluate whether simpler interaction patterns can make digital udhaar tracking more practical during peak business hours.
+This project evaluates whether reducing transaction-entry friction can improve the consistency and efficiency of digital transaction logging during high-activity operational periods.
+
+## Current Scope
+
+The current release focuses on validating workflow simplification and usability improvements rather than delivering a full-featured financial management platform.
+
+## Future Roadmap
+
+* Repeat-customer shortcuts
+*  Intelligent transaction suggestions
+*  Digital record migration workflows
+*  Offline-first support
+*  Usage analytics and operational insights
+*  Automated notificatio
+
+---
+
+_Developed by Pragati Yadav_
