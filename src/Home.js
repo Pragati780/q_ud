@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import "./App.css";
 
 import {
@@ -16,6 +16,12 @@ export const Home = () => {
   const [customerName, setCustomerName] = useState("");
   const [amount, setAmount] = useState("");
   const [rushMode, setRushMode] = useState(false);
+  const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+
+  const customerInputRef = useRef(null);
 
   const customersCollectionRef = collection(db, "customers");
 
@@ -35,39 +41,92 @@ export const Home = () => {
     }
   }, [customersCollectionRef]);
 
-  // Voice Input
-  const startVoiceInput = () => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+  // Auto-focus Customer Name whenever Rush Mode is switched on
+  useEffect(() => {
+    if (rushMode && customerInputRef.current) {
+      customerInputRef.current.focus();
+    }
+  }, [rushMode]);
 
-    if (!SpeechRecognition) {
-      alert("Speech recognition not supported in this browser");
-      return;
+  // Auto-dismiss toast after 2.5s
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
+
+  // Voice Input
+const startVoiceInput = () => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Speech recognition not supported in this browser");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    console.log("🎤 Listening...");
+    setIsListening(true);
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+
+    console.log("Transcript:", transcript);
+
+    const words = transcript.split(" ");
+
+    const amountWord = words.find((word) => !isNaN(word));
+
+    if (amountWord) {
+      setAmount(Number(amountWord));
     }
 
-    const recognition = new SpeechRecognition();
+    const customer = words.filter((word) => isNaN(word)).join(" ");
 
-    recognition.lang = "en-IN";
-    recognition.start();
+    setCustomerName(customer);
+  };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+  recognition.onerror = (event) => {
+    console.log("Speech Error:", event.error);
+    setIsListening(false);
+  };
 
-      const words = transcript.split(" ");
+  recognition.onend = () => {
+    console.log("Speech Ended");
+    setIsListening(false);
+  };
 
-      const amountWord = words.find((word) => !isNaN(word));
+  recognition.start();
+};
 
-      if (amountWord) {
-        setAmount(Number(amountWord));
+  const resetFormAndRefocus = () => {
+    setCustomerName("");
+    setAmount("");
+    setShowCustomAmount(false);
+
+    setTimeout(() => {
+      if (customerInputRef.current) {
+        customerInputRef.current.focus();
       }
-
-      const customer = words.filter((word) => isNaN(word)).join(" ");
-
-      setCustomerName(customer);
-    };
+    }, 0);
   };
 
   const addUdhaarQuick = async (value) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       const docRef = await addDoc(customersCollectionRef, {
         name: customerName,
@@ -75,55 +134,61 @@ export const Home = () => {
         createdAt: new Date(),
       });
 
-      setCustomers([
-        ...customers,
+      setCustomers((prev) => [
+        ...prev,
         {
           id: docRef.id,
           name: customerName,
           amount: value,
+          createdAt: { seconds: Math.floor(Date.now() / 1000) },
         },
       ]);
+
+      showToast(`₹${value} added for ${customerName}`);
+      resetFormAndRefocus();
     } catch (err) {
       console.error(err);
+      showToast("Could not add entry. Try again.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Add Udhaar Entry
   const addUdhaar = async () => {
+    if (isSubmitting) return;
+
     if (!customerName || !amount) {
-      alert("Please fill all fields");
+      showToast("Please fill all fields", "error");
       return;
     }
 
-    try {
-      console.log("Starting add...");
+    setIsSubmitting(true);
 
+    try {
       const docRef = await addDoc(customersCollectionRef, {
         name: customerName,
         amount: Number(amount),
         createdAt: new Date(),
       });
 
-      console.log("Document written with ID:", docRef.id);
-
-      // Immediately update local UI
-      setCustomers([
-        ...customers,
+      setCustomers((prev) => [
+        ...prev,
         {
           id: docRef.id,
           name: customerName,
           amount: Number(amount),
+          createdAt: { seconds: Math.floor(Date.now() / 1000) },
         },
       ]);
 
-      setCustomerName("");
-      setAmount("");
-
-      alert("Added successfully!");
+      showToast("Added successfully!");
+      resetFormAndRefocus();
     } catch (err) {
       console.error("FULL FIREBASE ERROR:", err);
-
       alert(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -149,6 +214,39 @@ export const Home = () => {
     0,
   );
 
+  const handleQuickAmountClick = (value) => {
+    setAmount(value);
+    setShowCustomAmount(false);
+
+    if (rushMode && customerName) {
+      addUdhaarQuick(value);
+    }
+  };
+
+  const handleFieldKeyDown = (e) => {
+    if (e.key === "Enter" && !rushMode) {
+      addUdhaar();
+    }
+  };
+
+  const handleRecentCustomerClick = (name) => {
+    setCustomerName(name);
+  };
+
+  // Last 5 unique customer names, most recently added first
+  const recentCustomers = [...customers]
+    .reverse()
+    .reduce((acc, c) => {
+      if (!acc.find((a) => a === c.name) && c.name) {
+        acc.push(c.name);
+      }
+      return acc;
+    }, [])
+    .slice(0, 5);
+
+  // Newest entries on top
+  const sortedCustomers = [...customers].reverse();
+
   return (
     <div className="Home">
       <div className="nav">
@@ -157,6 +255,10 @@ export const Home = () => {
           <p>Built for small kirana stores during rush-hour billing</p>
         </div>
       </div>
+
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>{toast.message}</div>
+      )}
 
       <div className="container">
         <div className="form-card">
@@ -171,73 +273,95 @@ export const Home = () => {
             {rushMode ? "⚡ Rush Hour Mode ON" : "⚡ Enable Rush Hour Mode"}
           </button>
 
-          <button className="voice-btn" onClick={startVoiceInput}>
-            🎤 Quick Voice Entry
+          <button
+            className={`voice-btn ${isListening ? "listening" : ""}`}
+            onClick={startVoiceInput}
+          >
+            {isListening ? "🎙️ Listening..." : "🎤 Quick Voice Entry"}
           </button>
 
+          {rushMode && !isListening && (
+            <p className="voice-helper-text">Try: "Rajesh 120"</p>
+          )}
+
           <input
+            ref={customerInputRef}
             placeholder="Customer Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
+            onKeyDown={handleFieldKeyDown}
           />
 
-          {!rushMode && (
+          {recentCustomers.length > 0 && (
+            <div className="recent-customers">
+              {recentCustomers.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="recent-customer-chip"
+                  onClick={() => handleRecentCustomerClick(name)}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(!rushMode || showCustomAmount) && (
             <input
               type="number"
               placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={handleFieldKeyDown}
             />
           )}
 
-          <div className="quick-buttons">
+          <div
+            className={`quick-buttons ${rushMode ? "rush-quick-buttons" : ""}`}
+          >
             <button
-              onClick={() => {
-                setAmount(10);
-
-                if (rushMode && customerName) {
-                  addUdhaarQuick(10);
-                }
-              }}
+              disabled={isSubmitting}
+              onClick={() => handleQuickAmountClick(10)}
             >
               ₹10
             </button>
             <button
-              onClick={() => {
-                setAmount(20);
-
-                if (rushMode && customerName) {
-                  addUdhaarQuick(20);
-                }
-              }}
+              disabled={isSubmitting}
+              onClick={() => handleQuickAmountClick(20)}
             >
               ₹20
             </button>
             <button
-              onClick={() => {
-                setAmount(50);
-
-                if (rushMode && customerName) {
-                  addUdhaarQuick(50);
-                }
-              }}
+              disabled={isSubmitting}
+              onClick={() => handleQuickAmountClick(50)}
             >
               ₹50
             </button>
             <button
-              onClick={() => {
-                setAmount(100);
-
-                if (rushMode && customerName) {
-                  addUdhaarQuick(100);
-                }
-              }}
+              disabled={isSubmitting}
+              onClick={() => handleQuickAmountClick(100)}
             >
               ₹100
             </button>
           </div>
 
-          <button onClick={addUdhaar}>Add Udhaar</button>
+          {rushMode && !showCustomAmount && (
+            <button
+              className="custom-amount-btn"
+              onClick={() => setShowCustomAmount(true)}
+            >
+              + Custom Amount
+            </button>
+          )}
+
+          <button
+            className="add-udhaar-btn"
+            onClick={addUdhaar}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Adding..." : "Add Udhaar"}
+          </button>
         </div>
 
         <div className="user-table">
@@ -254,43 +378,52 @@ export const Home = () => {
             </thead>
 
             <tbody>
-              {customers.map((customer) => {
-                return (
-                  <tr key={customer.id}>
-                    <td>{customer.name}</td>
+              {sortedCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="empty-state">
+                    No pending customers yet. Add your first Udhaar entry
+                    above.
+                  </td>
+                </tr>
+              ) : (
+                sortedCustomers.map((customer) => {
+                  return (
+                    <tr key={customer.id}>
+                      <td>{customer.name}</td>
 
-                    <td>₹{customer.amount}</td>
+                      <td>₹{customer.amount}</td>
 
-                    <td>
-                      {customer.createdAt
-                        ? new Date(
-                            customer.createdAt.seconds * 1000,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "Now"}
-                    </td>
+                      <td>
+                        {customer.createdAt
+                          ? new Date(
+                              customer.createdAt.seconds * 1000,
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Now"}
+                      </td>
 
-                    <td>
-                      <button
-                        onClick={() =>
-                          alert(`Reminder sent to ${customer.name}`)
-                        }
-                      >
-                        Reminder
-                      </button>
+                      <td>
+                        <button
+                          onClick={() =>
+                            alert(`Reminder sent to ${customer.name}`)
+                          }
+                        >
+                          Reminder
+                        </button>
 
-                      <button
-                        style={{ marginLeft: "10px" }}
-                        onClick={() => clearBalance(customer.id)}
-                      >
-                        Paid
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                        <button
+                          style={{ marginLeft: "10px" }}
+                          onClick={() => clearBalance(customer.id)}
+                        >
+                          Paid
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
